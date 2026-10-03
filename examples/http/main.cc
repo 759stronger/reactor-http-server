@@ -1,6 +1,6 @@
-#include "http.hpp"
+#include "reactor/http.hpp"
 
-#define WWWROOT "./wwwroot/"
+#define WWWROOT "./resources/wwwroot/"
 
 std::string RequestStr(const HttpRequest &req)
 {

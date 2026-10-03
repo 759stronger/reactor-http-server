@@ -4,7 +4,7 @@
 
 基于 Linux epoll 的 C++11 TCP 服务框架，通过主从 Reactor 和每线程一个事件循环组织连接处理，并提供 Echo 与 HTTP 服务示例。
 
-核心实现位于 [http_v1/server.hpp](http_v1/server.hpp)。本项目适合学习事件驱动网络编程、跨线程任务投递、连接生命周期与 HTTP 请求解析。下文依据已提交源码整理；构建、运行及性能结果尚未在干净环境中复核。
+核心实现位于 [include/reactor/server.hpp](include/reactor/server.hpp)。本项目适合学习事件驱动网络编程、跨线程任务投递、连接生命周期与 HTTP 请求解析。下文依据已提交源码整理；构建、运行及性能结果尚未在干净环境中复核。
 
 ## 已实现的能力
 
@@ -43,26 +43,33 @@ eventfd 负责跨线程唤醒，timerfd 与 TimerWheel 负责超时任务。业�
 ## 目录
 
 ```text
-http_v1/
+include/reactor/
 ├── server.hpp           TCP 框架及 Reactor 核心
-├── echo/                Echo 示例，监听 8500
-└── http/
-    ├── http.hpp         HTTP 解析、路由、静态文件与响应
-    ├── main.cc          HTTP 示例，监听 8085，配置 3 个工作线程
-    ├── makefile
-    └── wwwroot/         首页与演示文件
-testdata/                手工连接、超时、不完整正文与大文件测试客户端
-mudo/                    Any、Socket、时间轮的独立练习
-WebBench-master/         随附 WebBench 源码及其说明/许可证
+├── http.hpp             HTTP 解析、路由、静态文件与响应
+└── echo_server.hpp      Echo 服务封装
+examples/
+├── http/main.cc         HTTP 示例，监听 8085，配置 3 个工作线程
+├── echo/main.cc         Echo 示例，监听 8500
+├── tcp/                 TCP 服务与客户端、底层 Reactor 组装示例
+└── experiments/         Any、Socket、时间轮及 bind 学习材料
+tests/
+├── manual/              长连接、超时、不完整正文与大文件手工客户端
+└── fixtures/hello.txt   大文件上传样本
+resources/wwwroot/       首页与演示文件
+third_party/webbench/    WebBench 源码、说明与许可证
 docs/images/            项目概览与架构图
+build/                  生成的可执行文件（不纳入 Git）
+artifacts/legacy/        本地旧产物与原构建文件存档（不纳入 Git）
 ```
+
+核心实现仍在头文件中，类外方法与全局 HTTP 映射没有拆成独立库翻译单元。当前构建每个程序只使用一个入口；若自定义多翻译单元程序，需要先处理定义边界，不能把全部示例的 `main()` 一起链接。
 
 ## 环境要求
 
 - Linux：核心使用 epoll、eventfd、timerfd，不能直接按这些命令在原生 Windows 上运行。
 - 支持 C++11 的 g++、GNU make、pthread。
 - curl 用于 HTTP 验证；Python 3 可用于下面的 Echo 验证。
-- WebBench 为可选工具，具体构建说明见其 [README](WebBench-master/README.md)。
+- WebBench 为可选工具，具体构建说明见其 [README](third_party/webbench/README.md)。
 
 Ubuntu/Debian 可准备基础工具：
 
@@ -76,21 +83,19 @@ sudo apt install build-essential curl python3
 ```bash
 git clone https://github.com/759stronger/reactor-http-server.git
 cd reactor-http-server
-make -B -C http_v1/http
-cd http_v1/http
-./main
+make -B
+./build/reactor-http-server
 ```
 
-使用 `make -B` 强制从源码重新构建，避免仓库内已提交的二进制被直接复用。makefile 的实际编译规则是 `g++ -std=c++11 main.cc -o main -lpthread`。
+使用 `make -B` 从源码重新构建。根 Makefile 给每个可执行程序分别编译一个入口，添加 `-Iinclude` 并链接 pthread；生成文件统一放入 `build/`。原二进制与旧 makefile 只保留在本地 `artifacts/legacy/`，不作为已验证的运行版本发布。
 
-**请从 `http_v1/http` 目录启动 HTTP 示例。** 程序通过相对路径 `./wwwroot/` 查找静态文件。端口和线程数量目前写在 `main.cc` 中；需要调整时应修改示例入口并重新构建。
+**请从项目根目录启动 HTTP 示例。** 程序通过相对路径 `./resources/wwwroot/` 查找静态文件。端口和线程数量写在 `examples/http/main.cc` 中；需要调整时修改该入口并重新构建。
 
 另开终端，在仓库根目录构建和运行 Echo 示例：
 
 ```bash
-make -B -C http_v1/echo
-cd http_v1/echo
-./main
+make -B build/reactor-echo-server
+./build/reactor-echo-server
 ```
 
 Echo 示例监听 8500，配置 2 个工作线程和 10 秒非活跃超时。HTTP 与 Echo 示例使用不同端口，可分别启动。
@@ -126,7 +131,7 @@ with socket.create_connection(("127.0.0.1", 8500), timeout=5) as client:
 PY
 ```
 
-这些命令提供预期行为，尚未作为已通过的测试结果。已有更多手工验证材料位于 `testdata/`；其中部分客户端含循环或会覆盖演示文件，运行前应阅读对应源码。
+这些命令提供预期行为，尚未作为已通过的测试结果。运行 `make manual-tests` 可构建 `tests/manual/` 中的客户端，再从项目根目录运行相应 `build/manual/` 程序。大文件客户端读取 `tests/fixtures/hello.txt`；部分客户端含循环或会覆盖演示文件，运行前应阅读源码。
 
 ## 性能与边界
 
@@ -144,4 +149,4 @@ PY
 
 ## 许可证
 
-随附 WebBench 的许可证见 [WebBench-master/LICENSE](WebBench-master/LICENSE)。当前仓库尚未为自有服务器代码提供独立许可证；WebBench 的许可声明不应自动视为整个仓库的授权。
+随附 WebBench 的许可证见 [third_party/webbench/LICENSE](third_party/webbench/LICENSE)。当前仓库尚未为自有服务器代码提供独立许可证；WebBench 的许可声明不应自动视为整个仓库的授权。

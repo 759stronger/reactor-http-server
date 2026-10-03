@@ -1,0 +1,11 @@
+/build/
+/artifacts/legacy/
+*.o
+*.obj
+*.a
+*.so
+*.exe
+*.pdb
+.env
+.env.*
+third_party/webbench/webbench

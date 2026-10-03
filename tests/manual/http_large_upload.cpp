@@ -7,7 +7,7 @@
 //
 // 2.
 
-#include "../http_v1/http/http.hpp"
+#include "reactor/http.hpp"
 
 /*
 int main()
@@ -73,7 +73,7 @@ int main()
     cli_sock.CreateClient( "127.0.0.1" ,8085);
     std::string req = "PUT /123.txt HTTP/1.1\r\nConnection: keep-alive\r\n";
     std::string body;
-    Util::ReadFile("./hello.txt", &body);
+    Util::ReadFile("./tests/fixtures/hello.txt", &body);
     req += "Content-Length: " + std::to_string(body.size()) + "\r\n\r\n";
     assert(cli_sock.Send(req.c_str(), req.size()) != -1);
     assert(cli_sock.Send(body.c_str(), body.size()) != -1);
