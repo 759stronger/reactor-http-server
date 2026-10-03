@@ -1,0 +1,94 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1600" height="850" viewBox="0 0 1600 850" role="img" aria-labelledby="diagram-title diagram-desc">
+  <title id="diagram-title">Reactor HTTP Server 源码架构</title>
+  <desc id="diagram-desc">主 EventLoop 的 Acceptor 接受连接，LoopThreadPool 轮询分配给三个工作 EventLoop。每个 Loop 独立拥有 epoll Poller、任务队列、eventfd 和时间轮。底部展示任一工作 Loop 内的 Channel、Connection、输入缓冲区、HTTP 解析路由、输出缓冲区与 Socket 链路。跨线程调用通过目标 Loop 的 eventfd 唤醒任务队列。</desc>
+  <defs>
+    <marker id="arrow-request" markerWidth="12" markerHeight="12" refX="10" refY="6" orient="auto" markerUnits="userSpaceOnUse"><path d="M1 1 L11 6 L1 11 Z" fill="#23486f"/></marker>
+    <marker id="arrow-response" markerWidth="12" markerHeight="12" refX="10" refY="6" orient="auto" markerUnits="userSpaceOnUse"><path d="M1 1 L11 6 L1 11 Z" fill="#138878"/></marker>
+    <style>
+      text { font-family: "Microsoft YaHei", "Noto Sans CJK SC", "PingFang SC", sans-serif; fill:#173454; font-size:24px; }
+      .heading { font-size:30px; font-weight:700; }
+      .section { font-size:28px; font-weight:700; }
+      .name { font-size:26px; font-weight:700; }
+      .white { fill:#ffffff; }
+      .muted { fill:#53687e; }
+      .request { fill:none; stroke:#23486f; stroke-width:3.5; marker-end:url(#arrow-request); }
+      .response { fill:none; stroke:#138878; stroke-width:3.5; marker-end:url(#arrow-response); }
+      .detail { fill:none; stroke:#7893a8; stroke-width:2.5; stroke-dasharray:8 6; }
+    </style>
+  </defs>
+  <rect width="1600" height="850" fill="#f4f7fb"/>
+  <text x="60" y="62" class="heading" text-anchor="start">主从 Reactor：连接分配与 HTTP 请求处理</text>
+  <text x="60" y="104" class="muted" text-anchor="start">Linux · C++11 · HTTP 示例监听 8085 · 配置 3 个工作线程</text>
+  <rect x="60" y="193" width="245" height="126" rx="18" fill="#eaf1fa" stroke="#bccfe4" stroke-width="2"/>
+  <text x="182" y="240" class="name" text-anchor="middle">TCP / HTTP 客户端</text>
+  <text x="182" y="282" class="muted" text-anchor="middle">建立新连接</text>
+  <rect x="350" y="153" width="335" height="275" rx="18" fill="#173b65" stroke="#173b65" stroke-width="2"/>
+  <text x="377" y="193" class="section white" text-anchor="start">主 EventLoop</text>
+  <rect x="375" y="219" width="285" height="70" rx="12" fill="#ffffff" stroke="#ffffff" stroke-width="2"/>
+  <text x="517" y="261" class="name" text-anchor="middle">Acceptor：接受连接</text>
+  <text x="375" y="329" class="white" text-anchor="start">Poller / 任务队列</text>
+  <text x="375" y="369" class="white" text-anchor="start">eventfd / 独立时间轮</text>
+  <rect x="735" y="222" width="205" height="111" rx="18" fill="#fff2de" stroke="#e7c68e" stroke-width="2"/>
+  <text x="837" y="265" class="name" text-anchor="middle">线程池</text>
+  <text x="837" y="306" text-anchor="middle">NextLoop 轮询</text>
+  <path class="request" d="M305 254 L350 254"/>
+  <path class="request" d="M685 274 L735 274"/>
+  <rect x="985" y="142" width="550" height="306" rx="18" fill="#e7f5f1" stroke="#a9d6cc" stroke-width="2"/>
+  <text x="1010" y="182" class="section" text-anchor="start">工作线程：每线程一个 EventLoop</text>
+  <rect x="1005" y="198" width="510" height="72" rx="12" fill="#ffffff" stroke="#bed8d3" stroke-width="2"/>
+  <text x="1024" y="229" class="name" text-anchor="start">Loop 1 · 线程 1</text>
+  <text x="1024" y="258" class="muted" text-anchor="start">连接归属此 Loop</text>
+  <text x="1335" y="228" text-anchor="middle">Poller / 时间轮</text>
+  <text x="1335" y="258" text-anchor="middle">任务队列 / eventfd</text>
+  <rect x="1005" y="280" width="510" height="72" rx="12" fill="#ffffff" stroke="#bed8d3" stroke-width="2"/>
+  <text x="1024" y="311" class="name" text-anchor="start">Loop 2 · 线程 2</text>
+  <text x="1024" y="340" class="muted" text-anchor="start">连接归属此 Loop</text>
+  <text x="1335" y="310" text-anchor="middle">Poller / 时间轮</text>
+  <text x="1335" y="340" text-anchor="middle">任务队列 / eventfd</text>
+  <rect x="1005" y="362" width="510" height="72" rx="12" fill="#ffffff" stroke="#bed8d3" stroke-width="2"/>
+  <text x="1024" y="393" class="name" text-anchor="start">Loop 3 · 线程 3</text>
+  <text x="1024" y="422" class="muted" text-anchor="start">连接归属此 Loop</text>
+  <text x="1335" y="392" text-anchor="middle">Poller / 时间轮</text>
+  <text x="1335" y="422" text-anchor="middle">任务队列 / eventfd</text>
+  <path d="M940 277 L962 277 M962 234 L962 398" fill="none" stroke="#23486f" stroke-width="3.5"/>
+  <path class="request" d="M962 234 L1005 234"/>
+  <path class="request" d="M962 316 L1005 316"/>
+  <path class="request" d="M962 398 L1005 398"/>
+  <rect x="60" y="352" width="245" height="76" rx="14" fill="#daf2ec" stroke="#a2d2c6" stroke-width="2"/>
+  <text x="182" y="382" class="name" text-anchor="middle">跨线程调用方</text>
+  <text x="182" y="414" text-anchor="middle">QueueInLoop</text>
+  <path class="response" d="M305 391 L350 391"/>
+  <path class="response" d="M182 428 L182 472 L1260 472 L1260 448"/>
+  <text x="585" y="462" class="muted" text-anchor="start">向目标 Loop 的 eventfd 写入，唤醒其任务队列</text>
+  <rect x="60" y="517" width="1475" height="235" rx="18" fill="#ffffff" stroke="#d2dfeb" stroke-width="2"/>
+  <text x="84" y="555" class="section" text-anchor="start">任一工作 Loop 内部：就绪事件与请求 / 响应链路</text>
+  <text x="84" y="594" class="muted" text-anchor="start">Connection 拥有缓冲区；HTTP 业务回调在连接所属的 Loop 线程执行</text>
+  <rect x="80" y="621" width="173" height="102" rx="12" fill="#e9f1fb" stroke="#b4cce4" stroke-width="2"/>
+  <text x="166.5" y="660" class="name" text-anchor="middle">Poller</text>
+  <text x="166.5" y="699" text-anchor="middle">epoll 就绪</text>
+  <path class="request" d="M253 671 L283 671"/>
+  <rect x="283" y="621" width="173" height="102" rx="12" fill="#e9f1fb" stroke="#b4cce4" stroke-width="2"/>
+  <text x="369.5" y="660" class="name" text-anchor="middle">Channel</text>
+  <text x="369.5" y="699" text-anchor="middle">事件回调</text>
+  <path class="request" d="M456 671 L486 671"/>
+  <rect x="486" y="621" width="178" height="102" rx="12" fill="#e5f4ef" stroke="#add3c6" stroke-width="2"/>
+  <text x="575" y="660" class="name" text-anchor="middle">Connection</text>
+  <text x="575" y="699" text-anchor="middle">连接管理</text>
+  <path class="request" d="M664 671 L694 671"/>
+  <rect x="694" y="621" width="158" height="102" rx="12" fill="#e5f4ef" stroke="#add3c6" stroke-width="2"/>
+  <text x="773" y="660" class="name" text-anchor="middle">输入 Buffer</text>
+  <text x="773" y="699" text-anchor="middle">请求数据</text>
+  <path class="request" d="M852 671 L882 671"/>
+  <rect x="882" y="621" width="230" height="102" rx="12" fill="#fff0dc" stroke="#e4c292" stroke-width="2"/>
+  <text x="997" y="660" class="name" text-anchor="middle">HttpContext</text>
+  <text x="997" y="699" text-anchor="middle">HTTP 解析 / 路由</text>
+  <path class="request" d="M1112 671 L1142 671"/>
+  <rect x="1142" y="621" width="180" height="102" rx="12" fill="#e5f4ef" stroke="#add3c6" stroke-width="2"/>
+  <text x="1232" y="660" class="name" text-anchor="middle">输出 Buffer</text>
+  <text x="1232" y="699" text-anchor="middle">响应数据</text>
+  <path class="request" d="M1322 671 L1352 671"/>
+  <rect x="1352" y="621" width="163" height="102" rx="12" fill="#e9f1fb" stroke="#b4cce4" stroke-width="2"/>
+  <text x="1433.5" y="660" class="name" text-anchor="middle">Socket</text>
+  <text x="1433.5" y="699" text-anchor="middle">网络发送</text>
+  <text x="60" y="803" class="muted" text-anchor="start">每个 EventLoop 独立拥有 Poller、任务队列、eventfd 与时间轮；本图不表示性能实测结果。</text>
+</svg>
